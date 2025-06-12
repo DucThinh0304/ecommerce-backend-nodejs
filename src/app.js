@@ -12,7 +12,7 @@ app.use(compression());
 
 // init routes
 app.get("/", (req, res, next) => {
-  return res.status(500).json({
+  return res.status(200).json({
     message: "welcome",
   });
 });
