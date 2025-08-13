@@ -10,12 +10,15 @@ app.use(helmet());
 app.use(compression());
 // init db
 require("./dbs/init.mongodb");
-const connect = require("./helpers/check.connect");
-connect.checkOverload();
+const { checkOverload } = require("./helpers/check.connect.js");
+checkOverload();
 // init routes
 app.get("/", (req, res, next) => {
+  console.log(req.body);
+  console.log(req.headers);
+  res.setHeader("Set-Cookie", "123");
   return res.status(200).json({
-    message: "welcome",
+    message: `Hello from the server!`,
   });
 });
 
