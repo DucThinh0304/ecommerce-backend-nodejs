@@ -1,7 +1,11 @@
 'use strict'
 
 const shopModel = require("../models/shop.model")
+const crypto = require("node:crypto")
 const bcrypt = require("bcrypt")
+const KeyTokenService = require("../services/keytoken.service");
+const {createTokenPair} = require("../auth/authUtils");
+const {getInfoData} = require("../utils");
 
 const RoleShop = {
     SHOP: "SHOP",
@@ -26,11 +30,40 @@ class AccessService {
             })
 
             if(newShop){
-                const {privateKey, publicKey} = crypto.generateKeyPairSync('rsa',{
-                    modulusLength: 4096,
-                })
+
+                const privateKey = crypto.randomBytes(64).toString("hex")
+                const publicKey = crypto.randomBytes(64).toString("hex")
+
 
                 console.log({privateKey, publicKey})
+
+                const keyStore = await KeyTokenService.createKeyToken({
+                    userId: newShop._id,
+                    publicKey,
+                    privateKey
+                })
+                if (!keyStore){
+                    return {
+                        code: 'xxxx',
+                        message: 'Shop already exists!'
+                    }
+                }
+
+                const tokens = await createTokenPair({userId: newShop._id. email}
+                    , publicKey, privateKey)
+                console.log(`Created Token Success::`, tokens)
+
+                return {
+                    code: 201,
+                    metadata:{
+                        shop: getInfoData({fields: ['_id', 'name', 'email'], object: newShop}),
+                        tokens
+                    }
+                }
+            }
+            return {
+                code: 200,
+                metadata:null
             }
         } catch (err){
             return{
@@ -41,3 +74,5 @@ class AccessService {
         }
     }
 }
+
+module.exports = AccessService

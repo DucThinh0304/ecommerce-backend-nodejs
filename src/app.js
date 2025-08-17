@@ -11,7 +11,7 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 // init db
-// require("./dbs/init.mongodb");
+require("./dbs/init.mongodb");
 // const { checkOverload } = require("./helpers/check.connect.js");
 // checkOverload();
 
