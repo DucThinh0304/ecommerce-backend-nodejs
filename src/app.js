@@ -17,4 +17,19 @@ require("./dbs/init.mongodb");
 
 app.use('/', require('./routes/index'));
 
+app.use((req, res, next) => {
+    const err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+})
+
+app.use((error, req, res, next) => {
+    const statusCode = error.status || 500;
+    return res.status(statusCode).json({
+        status: 'error',
+        code: statusCode,
+        message: error.message || 'Internal error',
+    })
+})
+
 module.exports = app;
