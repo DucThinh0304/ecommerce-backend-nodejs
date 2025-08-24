@@ -6,7 +6,8 @@ const bcrypt = require("bcrypt")
 const KeyTokenService = require("../services/keytoken.service");
 const {createTokenPair} = require("../auth/authUtils");
 const {getInfoData} = require("../utils");
-const {BadRequestError, ConflictRequestError} = require("../core/error.response");
+const {BadRequestError, ConflictRequestError, AuthFailureError} = require("../core/error.response");
+const {findByEmail} = require("./shop.service");
 
 const RoleShop = {
     SHOP: "SHOP",
@@ -16,6 +17,27 @@ const RoleShop = {
 }
 
 class AccessService {
+    static login = async ({email, password, refreshToken = null}) => {
+        const foundShop = await findByEmail({email})
+        if (!foundShop) { throw new BadRequestError("Invalid email or password") }
+        const match = await bcrypt.compare(password, foundShop.password)
+        if (!match) { throw new AuthFailureError("Invalid password") }
+        const privateKey = crypto.randomBytes(64).toString("hex")
+        const publicKey = crypto.randomBytes(64).toString("hex")
+
+        const {_id: userId} = foundShop
+
+        const tokens = await createTokenPair({userId, email}, publicKey, privateKey)
+        await KeyTokenService.createKeyToken({
+            refreshToken: tokens.refreshToken,
+            privateKey, publicKey, userId
+        })
+        return {
+            shop: getInfoData({fields: ['_id', 'name', 'email'], object: foundShop}),
+            tokens
+        }
+    }
+
     static signUp = async ({name, email, password}) => {
         const holderShop = await shopModel.findOne({email}).lean()
         if (holderShop) {
@@ -44,8 +66,7 @@ class AccessService {
                 }
             }
 
-            const tokens = await createTokenPair({userId: newShop._id.email}
-                , publicKey, privateKey)
+            const tokens = await createTokenPair({userId: newShop._id, email}, publicKey, privateKey)
             console.log(`Created Token Success::`, tokens)
 
             return {
